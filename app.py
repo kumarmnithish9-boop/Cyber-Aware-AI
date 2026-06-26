@@ -529,33 +529,39 @@ elif choice == "🔑 Forgot Password":
             )
 
             if st.button("Reset Password"):
-    
-             if new_password != confirm_password:
 
-                st.error(
-                "Passwords do not match"
-                )
+                if not new_password or not confirm_password:
 
-             elif not db.is_strong_password(
-                new_password
+                    st.error(
+                        "Please enter both password fields."
+                    )
+
+                elif new_password != confirm_password:
+
+                    st.error(
+                        "Passwords do not match."
+                    )
+
+                elif not db.is_strong_password(
+                    new_password
                 ):
 
-                st.warning(
-                "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one digit and one special character."
-                )
+                    st.warning(
+                        "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one digit and one special character."
+                    )
 
-            else:
+                else:
 
-                db.reset_password(
-                    username,
-                    new_password
-                )
+                    db.reset_password(
+                        username,
+                        new_password
+                    )
 
-                st.success(
-                    "Password Reset Successfully!"
-                )
+                    st.success(
+                        "Password Reset Successfully!"
+                    )
 
-                st.session_state.verified = False       
+                    st.session_state.verified = False       
         footer()
 
 elif choice == "🏠 Dashboard":
@@ -1395,3 +1401,236 @@ elif choice == "Delete Account":
             )                
 
     footer()            
+
+elif choice == "🛡 Admin Dashboard":
+
+        background.set_background(
+            "images/dashboard_banner.png"
+        )
+
+        st.title("🛡 CyberAware AI Admin Dashboard")
+
+
+        st.markdown(
+            "Manage users and monitor overall system activity."
+        )
+
+        st.markdown("---")    
+
+        total_users = db.get_total_users()
+
+        total_attempts = db.get_total_attempts()
+
+        best_score = db.get_best_score()
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+
+            st.metric(
+                "👥 Total Users",
+                total_users
+            )
+
+        with col2:
+
+            st.metric(
+                "📊 Quiz Attempts",
+                total_attempts
+            )
+
+        with col3:
+
+            st.metric(
+                "🏆 Highest Score",
+                best_score
+            )    
+
+        st.markdown("---")
+
+        st.subheader("👥 Registered Users")
+
+        users = db.get_all_users()
+
+        search = st.text_input(
+            "🔍 Search User"
+        )
+
+        if users:
+
+            user_df = pd.DataFrame(
+                users,
+                columns=["Username"]
+            )
+
+            if search:
+
+                user_df = user_df[
+                    user_df["Username"]
+                    .str.contains(
+                        search,
+                        case=False
+                    )
+                ]
+
+            st.dataframe(
+                user_df,
+                use_container_width=True
+            )
+
+        else:
+
+            st.info(
+                "No users found."
+            )    
+
+        st.markdown("---")
+
+        st.subheader("📈 Quiz Results")
+
+        scores = db.get_all_scores()
+
+        if scores:
+
+            score_df = pd.DataFrame(
+                scores,
+                columns=[
+                    "Username",
+                    "Score",
+                    "Total Questions"
+                ]
+            )
+
+            st.dataframe(
+                score_df,
+                use_container_width=True
+            )
+
+        else:
+
+            st.info(
+                "No quiz attempts yet."
+            )    
+
+        st.markdown("---")
+
+        st.subheader("🔒 Account Status")
+
+        status = db.get_user_status()
+
+        status_df = pd.DataFrame(
+
+            status,
+
+            columns=[
+                "Username",
+                "Failed Attempts",
+                "Lock Until"
+            ]
+        )
+
+        status_df["Status"] = status_df["Lock Until"].apply(
+
+            lambda x: "🔒 Locked" if x else "🟢 Active"
+
+        )
+
+        st.dataframe(
+
+            status_df[
+                [
+                    "Username",
+                    "Failed Attempts",
+                    "Status"
+                ]
+            ],
+
+            use_container_width=True
+
+        )        
+
+        st.markdown("---")
+
+        st.subheader("📊 User Performance")
+
+        if scores:
+
+            chart_df = pd.DataFrame(
+
+                scores,
+
+                columns=[
+                    "Username",
+                    "Score",
+                    "Total Questions"
+                ]
+            )
+
+            chart_df = (
+
+                chart_df
+
+                .groupby("Username")["Score"]
+
+                .max()
+
+                .reset_index()
+
+            )
+
+            st.bar_chart(
+
+                chart_df.set_index(
+                    "Username"
+                )
+
+            )
+
+        else:
+
+            st.info(
+                "No quiz data available."
+            )
+
+        st.markdown("---")
+
+        st.subheader("🗑 Delete User")
+
+        delete_user = st.selectbox(
+
+            "Select User",
+
+            [
+                user[0]
+                for user in users
+                if user[0] != "admin"
+            ],
+
+            key="delete_user_select"
+
+        )
+
+        confirm = st.checkbox(
+            "I understand this action cannot be undone.",
+            key="confirm_delete"
+        )
+
+        if confirm:
+
+            if st.button("Delete User"):
+
+                db.delete_user(delete_user)
+
+                st.session_state.delete_success = (
+                    f"{delete_user} deleted successfully."
+                )
+
+
+                st.rerun()
+        if "delete_success" in st.session_state:
+
+            st.success(
+                st.session_state.delete_success
+            )
+
+            del st.session_state.delete_success

@@ -391,6 +391,27 @@ def get_all_users():
     conn.close()
 
     return users
+
+def get_user_status():
+
+    conn = sqlite3.connect("users.db")
+
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT username,
+               failed_attempts,
+               lock_until
+        FROM users
+        ORDER BY username
+    """)
+
+    data = cursor.fetchall()
+
+    conn.close()
+
+    return data
+
 def get_total_attempts():
 
     conn = sqlite3.connect("users.db")
@@ -451,6 +472,31 @@ def get_all_scores():
     conn.close()
 
     return scores
+def delete_user(username):
+
+    conn = sqlite3.connect("users.db")
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        DELETE FROM quiz_scores
+        WHERE username = ?
+        """,
+        (username,)
+    )
+
+    cursor.execute(
+        """
+        DELETE FROM users
+        WHERE username = ?
+        """,
+        (username,)
+    )
+
+    conn.commit()
+
+    conn.close()
 
 
 
