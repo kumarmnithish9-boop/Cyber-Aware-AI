@@ -2,7 +2,7 @@ import os
 import json
 from google import genai
 
-API_KEY =os.getnv("geminikey")
+API_KEY =os.getenv("geminikey")
 
 client = genai.Client(
     api_key=API_KEY

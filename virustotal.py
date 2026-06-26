@@ -1,7 +1,7 @@
 import os
 import requests
 
-API_KEY = os.getnv("virustotalkey")
+API_KEY = os.getenv("virustotalkey")
 
 
 def check_url(url):
