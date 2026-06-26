@@ -332,6 +332,129 @@ def reset_failed_attempts(username):
     conn.commit()
     conn.close()    
 
+
+
+def create_admin():
+
+    conn = sqlite3.connect("users.db")
+
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    INSERT OR IGNORE INTO users
+    (username,password,security_question,security_answer)
+    VALUES (?,?,?,?)
+    """,
+    (
+        "admin",
+        "admin123",
+        "Admin",
+        "Admin"
+    ))
+
+    conn.commit()
+
+    conn.close()    
+
+def get_total_users():
+
+    conn = sqlite3.connect("users.db")
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM users"
+    )
+
+    total = cursor.fetchone()[0]
+
+    conn.close()
+
+    return total
+
+def get_all_users():
+
+    conn = sqlite3.connect("users.db")
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT username
+        FROM users
+        ORDER BY username
+        """
+    )
+
+    users = cursor.fetchall()
+
+    conn.close()
+
+    return users
+def get_total_attempts():
+
+    conn = sqlite3.connect("users.db")
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM quiz_scores
+        """
+    )
+
+    total = cursor.fetchone()[0]
+
+    conn.close()
+
+    return total
+def get_best_score():
+
+    conn = sqlite3.connect("users.db")
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT MAX(score)
+        FROM quiz_scores
+        """
+    )
+
+    result = cursor.fetchone()[0]
+
+    conn.close()
+
+    if result is None:
+        return 0
+
+    return result
+def get_all_scores():
+
+    conn = sqlite3.connect("users.db")
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT username,
+               score,
+               total_questions
+        FROM quiz_scores
+        ORDER BY score DESC
+        """
+    )
+
+    scores = cursor.fetchall()
+
+    conn.close()
+
+    return scores
+
+
+
 if __name__ == "__main__":
     create_database()
+    create_admin()
     print("Database created successfully")       

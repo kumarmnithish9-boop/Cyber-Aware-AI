@@ -12,6 +12,10 @@ import background
 import time
 import virustotal
 import re
+import os
+
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
 st.set_page_config(
     page_title="CyberAware AI",
@@ -26,8 +30,12 @@ pytesseract.pytesseract.tesseract_cmd = (
 
 if "show_splash" not in st.session_state:
     st.session_state.show_splash = True
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+
+if "is_admin" not in st.session_state:
+    st.session_state.is_admin = False    
 
 if "verified" not in st.session_state:
     st.session_state.verified = False
@@ -82,6 +90,7 @@ if st.session_state.show_splash:
 
 
 db.create_database()
+
 
 def footer():
         st.markdown(
@@ -190,19 +199,30 @@ st.markdown("""
 
 
 if st.session_state.logged_in:
-    menu = [
+
+    if st.session_state.is_admin:
+
+        menu = [
+            "🛡 Admin Dashboard"
+        ]
+
+    else:
+
+        menu = [
             "🏠 Dashboard",
             "🧠 AI Quiz",
             "📊 Quiz History",
             "🎣 Phishing Simulator",
             "📱 QR Scam Detector",
-            "🤖 AI Chatbot" ]
-else:
-    menu = [
-            "🔐 Login",
-            "📝 Register",
-            "🔑 Forgot Password"
+            "🤖 AI Chatbot"
+        ]
 
+else:
+
+    menu = [
+        "🔐 Login",
+        "📝 Register",
+        "🔑 Forgot Password"
     ]
 
 col1, col2, col3 = st.sidebar.columns([1,2,1])
@@ -311,70 +331,94 @@ if choice == "🔐 Login":
                 )
 
             else:
+               
 
-                user = db.login_user(
-                    username,
-                    password
-                )
+                # ---------------- ADMIN LOGIN ---------------- #
 
-                if user:
-
-                    db.reset_failed_attempts(
-                        username
-                    )
-
+                if (
+                    username == ADMIN_USERNAME
+                    and
+                    password == ADMIN_PASSWORD
+                ):
                     st.session_state.logged_in = True
-                    st.session_state.username = username
+                    st.session_state.is_admin = True
+                    st.session_state.username = "admin"
 
                     st.success(
-                        "Login Successful!"
+                        "Welcome Admin!"
                     )
 
                     st.rerun()
 
+                # ---------------- NORMAL USER LOGIN ---------------- #
+
                 else:
 
-                    db.record_failed_login(
-                        username
+                    user = db.login_user(
+                        username,
+                        password
                     )
 
-                    conn = sqlite3.connect("users.db")
-                    cursor = conn.cursor()
+                    if user:
 
-                    cursor.execute(
-                        """
-                        SELECT failed_attempts
-                        FROM users
-                        WHERE username = ?
-                        """,
-                        (username,)
-                    )
+                        db.reset_failed_attempts(
+                            username
+                        )
 
-                    result = cursor.fetchone()
+                        st.session_state.logged_in = True
+                        st.session_state.is_admin = False
+                        st.session_state.username = username
 
-                    conn.close()
+                        st.success(
+                            "Login Successful!"
+                        )
 
-                    if result:
+                        st.rerun()
 
-                        attempts = result[0]
+                    else:
 
-                        if attempts >= 5:
+                        db.record_failed_login(
+                            username
+                        )
 
-                            st.error(
-                                "Too many failed attempts. Account locked for 1 hour."
-                            )
+                        conn = sqlite3.connect("users.db")
+                        cursor = conn.cursor()
+
+                        cursor.execute(
+                            """
+                            SELECT failed_attempts
+                            FROM users
+                            WHERE username = ?
+                            """,
+                            (username,)
+                        )
+
+                        result = cursor.fetchone()
+
+                        conn.close()
+
+                        if result:
+
+                            attempts = result[0]
+
+                            if attempts >= 5:
+
+                                st.error(
+                                    "Too many failed attempts. Account locked for 1 hour."
+                                )
+
+                            else:
+
+                                st.error(
+                                    f"Invalid Username or Password. Attempts left: {5 - attempts}"
+                                )
 
                         else:
 
                             st.error(
-                                f"Invalid Username or Password. Attempts left: {5 - attempts}"
+                                "Invalid Username or Password"
                             )
 
-                    else:
-
-                        st.error(
-                            "Invalid Username or Password"
-                        )
         footer()
 
 elif choice == "📝 Register":
